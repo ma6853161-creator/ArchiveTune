@@ -34,6 +34,7 @@ import moe.rukamori.archivetune.ui.screens.artist.ArtistScreen
 import moe.rukamori.archivetune.ui.screens.artist.ArtistSongsScreen
 import moe.rukamori.archivetune.ui.screens.library.LibraryScreen
 import moe.rukamori.archivetune.ui.screens.library.LocalSongScreen
+import moe.rukamori.archivetune.ui.screens.library.SavedQueuesScreen
 import moe.rukamori.archivetune.ui.screens.musicrecognition.MusicRecognitionScreen
 import moe.rukamori.archivetune.ui.screens.playlist.AutoPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.CachePlaylistScreen
@@ -108,6 +109,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("history") {
         HistoryScreen(navController)
+    }
+    composable("saved_queues") {
+        SavedQueuesScreen(navController, scrollBehavior)
     }
     composable("stats") {
         StatsScreen(navController)
