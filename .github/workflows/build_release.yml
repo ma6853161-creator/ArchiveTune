@@ -1,0 +1,61 @@
+name: Build Optimized APK (No Signing Secrets Required)
+
+# This workflow is additive and independent from build.yml/release.yml.
+# It exists for forks that don't have the maintainer's release-signing
+# secrets configured: it builds the "release" build type (R8-minified,
+# shrunk resources -> much smaller & faster than the debug build) and
+# relies on app/build.gradle.kts falling back to the debug keystore when
+# no real release keystore/secrets are present, so the resulting APK is
+# still signed and directly installable. This is intended for personal
+# sideloading only, not for publishing to app stores.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_release_unsigned:
+    if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-cleanup: on-success
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Optimized (Release-type) APK
+        run: ./gradlew assembleGmsMobileUniversalRelease
+        env:
+          PULL_REQUEST: 'false'
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          TOGETHER_BEARER_TOKEN: ${{ secrets.TOGETHER_BEARER_TOKEN }}
+          CANVAS_BEARER_TOKEN: ${{ secrets.CANVAS_BEARER_TOKEN }}
+          EXTRACTOR_BEARER: ${{ secrets.EXTRACTOR_BEARER }}
+
+      - name: Upload Optimized APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-gms-mobile-universal-release-selfsigned
+          path: |
+            app/build/outputs/apk/mobile/universal/release/*.apk
+            app/build/outputs/apk/gmsMobileUniversal/release/*.apk
+            app/build/outputs/apk/gms/mobile/universal/release/*.apk
+            app/build/outputs/apk/mobileUniversal/release/*.apk
