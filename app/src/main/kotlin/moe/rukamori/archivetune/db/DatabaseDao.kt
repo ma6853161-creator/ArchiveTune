@@ -49,6 +49,7 @@ import moe.rukamori.archivetune.db.entities.PlaylistSong
 import moe.rukamori.archivetune.db.entities.PlaylistSongMap
 import moe.rukamori.archivetune.db.entities.PlaylistTagMap
 import moe.rukamori.archivetune.db.entities.RelatedSongMap
+import moe.rukamori.archivetune.db.entities.SavedQueueEntity
 import moe.rukamori.archivetune.db.entities.SearchHistory
 import moe.rukamori.archivetune.db.entities.SetVideoIdEntity
 import moe.rukamori.archivetune.db.entities.Song
@@ -2093,4 +2094,33 @@ interface DatabaseDao {
             addTagToPlaylist(playlistId, tagId)
         }
     }
+
+    // region Saved queues ("Save Queue" feature)
+
+    @Query("SELECT * FROM saved_queue ORDER BY lastUpdateTime DESC")
+    fun savedQueues(): Flow<List<SavedQueueEntity>>
+
+    @Query("SELECT * FROM saved_queue WHERE id = :id")
+    fun savedQueue(id: String): Flow<SavedQueueEntity?>
+
+    @Query("SELECT COUNT(*) FROM saved_queue")
+    fun savedQueueCount(): Flow<Int>
+
+    @Insert
+    fun insert(savedQueue: SavedQueueEntity)
+
+    @Update
+    fun update(savedQueue: SavedQueueEntity)
+
+    @Query("UPDATE saved_queue SET name = :name, lastUpdateTime = :updatedAt WHERE id = :id")
+    fun renameSavedQueue(
+        id: String,
+        name: String,
+        updatedAt: LocalDateTime = LocalDateTime.now(),
+    )
+
+    @Query("DELETE FROM saved_queue WHERE id = :id")
+    fun deleteSavedQueue(id: String)
+
+    // endregion
 }

@@ -42,6 +42,7 @@ import moe.rukamori.archivetune.db.entities.PlaylistSongMap
 import moe.rukamori.archivetune.db.entities.PlaylistSongMapPreview
 import moe.rukamori.archivetune.db.entities.PlaylistTagMap
 import moe.rukamori.archivetune.db.entities.RelatedSongMap
+import moe.rukamori.archivetune.db.entities.SavedQueueEntity
 import moe.rukamori.archivetune.db.entities.SearchHistory
 import moe.rukamori.archivetune.db.entities.SetVideoIdEntity
 import moe.rukamori.archivetune.db.entities.SongAlbumMap
@@ -59,7 +60,7 @@ import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
 private const val TAG = "MusicDatabase"
-private const val CURRENT_VERSION = 32
+private const val CURRENT_VERSION = 33
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
@@ -127,6 +128,7 @@ class MusicDatabase(
         PlaylistTagMap::class,
         LibraryTopMixEntity::class,
         LibraryTopMixSongMap::class,
+        SavedQueueEntity::class,
     ],
     views = [
         SortedSongArtistMap::class,
