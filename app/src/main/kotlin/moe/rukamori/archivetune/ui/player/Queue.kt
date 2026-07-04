@@ -112,9 +112,12 @@ import moe.rukamori.archivetune.extensions.toggleRepeatMode
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.ui.component.BottomSheet
 import moe.rukamori.archivetune.ui.component.BottomSheetState
+import moe.rukamori.archivetune.ui.component.GridMenu
+import moe.rukamori.archivetune.ui.component.GridMenuItem
 import moe.rukamori.archivetune.ui.component.LocalBottomSheetPageState
 import moe.rukamori.archivetune.ui.component.LocalMenuState
 import moe.rukamori.archivetune.ui.component.MediaMetadataListItem
+import moe.rukamori.archivetune.ui.component.SaveQueueDialog
 import moe.rukamori.archivetune.ui.component.TextFieldDialog
 import moe.rukamori.archivetune.ui.menu.AddToPlaylistDialog
 import moe.rukamori.archivetune.ui.menu.PlayerMenu
@@ -196,6 +199,7 @@ fun Queue(
     val database = LocalDatabase.current
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showCreateQueuePlaylistDialog by rememberSaveable { mutableStateOf(false) }
+    var showSaveQueueDialog by rememberSaveable { mutableStateOf(false) }
 
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
@@ -289,6 +293,13 @@ fun Queue(
                     }
                 }
             },
+        )
+    }
+
+    if (showSaveQueueDialog) {
+        SaveQueueDialog(
+            onDismiss = { showSaveQueueDialog = false },
+            initialTextFieldValue = queueTitle,
         )
     }
 
@@ -881,6 +892,39 @@ fun Queue(
                             playerConnection.service.onInfiniteQueueEnabled()
                         } else {
                             playerConnection.service.onInfiniteQueueDisabled()
+                        }
+                    },
+                    onSaveQueueClick = {
+                        menuState.show {
+                            GridMenu(
+                                contentPadding =
+                                    androidx.compose.foundation.layout.PaddingValues(
+                                        start = 8.dp,
+                                        top = 8.dp,
+                                        end = 8.dp,
+                                        bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
+                                    ),
+                            ) {
+                                GridMenuItem(
+                                    icon = R.drawable.bookmark,
+                                    title = R.string.save_queue,
+                                    enabled = queueWindows.isNotEmpty(),
+                                    onClick = {
+                                        menuState.dismiss()
+                                        showSaveQueueDialog = true
+                                    },
+                                )
+                                GridMenuItem(
+                                    icon = R.drawable.queue_music,
+                                    title = R.string.saved_queues,
+                                    onClick = {
+                                        menuState.dismiss()
+                                        navController.navigate("saved_queues")
+                                        state.collapseSoft()
+                                        playerBottomSheetState.collapseSoft()
+                                    },
+                                )
+                            }
                         }
                     },
                 )
