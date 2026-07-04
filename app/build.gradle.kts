@@ -163,6 +163,13 @@ android {
         release {
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                // No release keystore/secrets available (e.g. a fork's local build or a CI run
+                // without the signing secrets configured). Fall back to the debug keystore so
+                // `assemble*Release` still produces a valid, installable, minified/shrunk APK
+                // instead of failing or producing an unsigned one. This is fine for personal
+                // sideloading; it must not be used to publish to app stores.
+                signingConfig = signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true
             isShrinkResources = true
