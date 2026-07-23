@@ -27,6 +27,7 @@ import moe.rukamori.archivetune.BuildConfig
 import moe.rukamori.archivetune.constants.UpdateChannel
 import moe.rukamori.archivetune.defaultUpdateChannel
 import moe.rukamori.archivetune.musicrecognition.MusicRecognitionRoute
+import moe.rukamori.archivetune.musicrecognition.MusicRecognitionDetailsRoute
 import moe.rukamori.archivetune.ui.screens.BrowseScreen
 import moe.rukamori.archivetune.ui.screens.artist.ArtistAlbumsScreen
 import moe.rukamori.archivetune.ui.screens.artist.ArtistItemsScreen
@@ -36,6 +37,7 @@ import moe.rukamori.archivetune.ui.screens.library.LibraryScreen
 import moe.rukamori.archivetune.ui.screens.library.LocalSongScreen
 import moe.rukamori.archivetune.ui.screens.library.SavedQueuesScreen
 import moe.rukamori.archivetune.ui.screens.musicrecognition.MusicRecognitionScreen
+import moe.rukamori.archivetune.ui.screens.musicrecognition.MusicRecognitionDetailsScreen
 import moe.rukamori.archivetune.ui.screens.playlist.AutoPlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.CachePlaylistScreen
 import moe.rukamori.archivetune.ui.screens.playlist.LocalPlaylistScreen
@@ -54,6 +56,7 @@ import moe.rukamori.archivetune.ui.screens.settings.AodCustomizedScreen
 import moe.rukamori.archivetune.ui.screens.settings.AppearanceSettings
 import moe.rukamori.archivetune.ui.screens.settings.BackupAndRestore
 import moe.rukamori.archivetune.ui.screens.settings.ChangelogScreen
+import moe.rukamori.archivetune.ui.screens.settings.ChiperSettings
 import moe.rukamori.archivetune.ui.screens.settings.ContentSettings
 import moe.rukamori.archivetune.ui.screens.settings.CustomizeBackground
 import moe.rukamori.archivetune.ui.screens.settings.DebugSettings
@@ -63,9 +66,11 @@ import moe.rukamori.archivetune.ui.screens.settings.IconScreen
 import moe.rukamori.archivetune.ui.screens.settings.IntegrationScreen
 import moe.rukamori.archivetune.ui.screens.settings.InternetSettings
 import moe.rukamori.archivetune.ui.screens.settings.LastFMSettings
+import moe.rukamori.archivetune.ui.screens.settings.LogcatScreen
 import moe.rukamori.archivetune.ui.screens.settings.LyricsAnimationSettings
 import moe.rukamori.archivetune.ui.screens.settings.LyricsSettings
 import moe.rukamori.archivetune.ui.screens.settings.MusicTogetherScreen
+import moe.rukamori.archivetune.ui.screens.settings.PO_TOKEN_ROUTE
 import moe.rukamori.archivetune.ui.screens.settings.PalettePickerScreen
 import moe.rukamori.archivetune.ui.screens.settings.PlayerSettings
 import moe.rukamori.archivetune.ui.screens.settings.PoTokenScreen
@@ -74,6 +79,7 @@ import moe.rukamori.archivetune.ui.screens.settings.SettingsScreen
 import moe.rukamori.archivetune.ui.screens.settings.StorageSettings
 import moe.rukamori.archivetune.ui.screens.settings.ThemeCreatorScreen
 import moe.rukamori.archivetune.ui.screens.settings.UpdateScreen
+import moe.rukamori.archivetune.viewmodels.OnlineSearchSort
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -84,6 +90,7 @@ fun NavGraphBuilder.navigationBuilder(
     onClearUpdateBadge: () -> Unit = {},
     homeScrollConnection: NestedScrollConnection? = null,
     searchScrollConnection: NestedScrollConnection? = null,
+    onlineSearchSort: OnlineSearchSort = OnlineSearchSort.DEFAULT,
 ) {
     composable(Screens.Home.route) {
         HomeScreen(navController, headerScrollConnection = homeScrollConnection)
@@ -146,6 +153,10 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable(MusicRecognitionRoute) {
         MusicRecognitionScreen(navController)
+    }
+    composable(MusicRecognitionDetailsRoute) { backStackEntry ->
+        val encodedTrack = backStackEntry.arguments?.getString("encodedTrack").orEmpty()
+        MusicRecognitionDetailsScreen(navController, encodedTrack)
     }
     composable(Screens.MoodAndGenres.route) {
         MoodAndGenresScreen(navController)
@@ -215,7 +226,10 @@ fun NavGraphBuilder.navigationBuilder(
             }
         },
     ) {
-        OnlineSearchResult(navController)
+        OnlineSearchResult(
+            navController = navController,
+            searchSort = onlineSearchSort,
+        )
     }
     composable(
         route = "album/{albumId}",
@@ -314,11 +328,15 @@ fun NavGraphBuilder.navigationBuilder(
         SpotifyPlaylistScreen(navController, scrollBehavior)
     }
     composable(
-        route = "auto_playlist/{playlist}",
+        route = "auto_playlist/{playlist}?tab={tab}",
         arguments =
             listOf(
                 navArgument("playlist") {
                     type = NavType.StringType
+                },
+                navArgument("tab") {
+                    type = NavType.StringType
+                    defaultValue = "downloaded"
                 },
             ),
     ) {
@@ -401,6 +419,9 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/player") {
         PlayerSettings(navController)
     }
+    composable("settings/player/chiper") {
+        ChiperSettings(navController)
+    }
     composable("settings/storage") {
         StorageSettings(navController)
     }
@@ -432,6 +453,9 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/misc") {
         DebugSettings(navController)
     }
+    composable("settings/logcat") {
+        LogcatScreen(navController)
+    }
     if (BuildConfig.UPDATER_AVAILABLE) {
         composable("settings/update") {
             UpdateScreen(navController, onUpToDate = onClearUpdateBadge)
@@ -449,16 +473,13 @@ fun NavGraphBuilder.navigationBuilder(
             ),
     ) { backStackEntry ->
         val channelName = backStackEntry.arguments?.getString("channel")
-        val channel =
-            channelName?.let {
-                runCatching { UpdateChannel.valueOf(it) }.getOrNull()
-            } ?: defaultUpdateChannel
+        val channel = UpdateChannel.fromStoredName(channelName, defaultUpdateChannel)
         ChangelogScreen(navController, channel = channel)
     }
     composable("settings/about") {
         AboutScreen(navController)
     }
-    composable("settings/po_token") {
+    composable(PO_TOKEN_ROUTE) {
         PoTokenScreen(navController)
     }
     composable("customize_background") {

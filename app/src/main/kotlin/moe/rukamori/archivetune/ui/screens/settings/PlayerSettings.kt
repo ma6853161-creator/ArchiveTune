@@ -48,16 +48,20 @@ import moe.rukamori.archivetune.constants.ExternalDownloaderEnabledKey
 import moe.rukamori.archivetune.constants.ExternalDownloaderPackageKey
 import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
 import moe.rukamori.archivetune.constants.HistoryDuration
+import moe.rukamori.archivetune.constants.InnerTubeCookieKey
 import moe.rukamori.archivetune.constants.LowDataModeKey
 import moe.rukamori.archivetune.constants.PauseOnDeviceMuteKey
 import moe.rukamori.archivetune.constants.PermanentShuffleKey
 import moe.rukamori.archivetune.constants.PersistentQueueKey
 import moe.rukamori.archivetune.constants.PlayerStreamClient
 import moe.rukamori.archivetune.constants.PlayerStreamClientKey
+import moe.rukamori.archivetune.constants.PoTokenGvsKey
+import moe.rukamori.archivetune.constants.PoTokenPlayerKey
 import moe.rukamori.archivetune.constants.SeekExtraSeconds
 import moe.rukamori.archivetune.constants.SkipSilenceKey
 import moe.rukamori.archivetune.constants.StopMusicOnTaskClearKey
 import moe.rukamori.archivetune.constants.WakelockKey
+import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.rukamori.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.rukamori.archivetune.ui.component.CrossfadeSliderPreference
 import moe.rukamori.archivetune.ui.component.EnumListPreference
@@ -85,7 +89,7 @@ fun PlayerSettings(navController: NavController) {
     val (playerStreamClient, onPlayerStreamClientChange) =
         rememberEnumPreference(
             PlayerStreamClientKey,
-            defaultValue = PlayerStreamClient.ANDROID_VR,
+            defaultValue = PlayerStreamClient.WEB_REMIX,
         )
     val (lowDataMode, onLowDataModeChange) =
         rememberPreference(
@@ -200,10 +204,18 @@ fun PlayerSettings(navController: NavController) {
             WakelockKey,
             defaultValue = false,
         )
+    val (innerTubeCookie, _) = rememberPreference(InnerTubeCookieKey, defaultValue = "")
+    val (poTokenGvs, _) = rememberPreference(PoTokenGvsKey, defaultValue = "")
+    val (poTokenPlayer, _) = rememberPreference(PoTokenPlayerKey, defaultValue = "")
+    val isArchiveTuneExtractorEnabled =
+        remember(innerTubeCookie, poTokenGvs, poTokenPlayer) {
+            hasYouTubeLoginCookie(innerTubeCookie) &&
+                poTokenGvs.isNotBlank() &&
+                poTokenPlayer.isNotBlank()
+        }
     val playerStreamClients =
         remember {
             listOf(
-                PlayerStreamClient.ANDROID_VR,
                 PlayerStreamClient.WEB_REMIX,
                 PlayerStreamClient.ARCHIVETUNE_EXTRACTOR,
             )
@@ -212,17 +224,30 @@ fun PlayerSettings(navController: NavController) {
         if (playerStreamClient in playerStreamClients) {
             playerStreamClient
         } else {
-            PlayerStreamClient.ANDROID_VR
+            PlayerStreamClient.WEB_REMIX
         }
     val audioQualityEnabled = selectedPlayerStreamClient != PlayerStreamClient.ARCHIVETUNE_EXTRACTOR
+    val isPlayerStreamClientEnabled =
+        remember(isArchiveTuneExtractorEnabled) {
+            { client: PlayerStreamClient ->
+                client != PlayerStreamClient.ARCHIVETUNE_EXTRACTOR ||
+                    isArchiveTuneExtractorEnabled
+            }
+        }
 
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
     var showTagsManagementDialog by remember { mutableStateOf(false) }
     var showExternalDownloaderPackageDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(playerStreamClient) {
-        if (playerStreamClient !in playerStreamClients) {
-            onPlayerStreamClientChange(PlayerStreamClient.ANDROID_VR)
+    LaunchedEffect(playerStreamClient, isArchiveTuneExtractorEnabled) {
+        if (
+            playerStreamClient !in playerStreamClients ||
+            (
+                playerStreamClient == PlayerStreamClient.ARCHIVETUNE_EXTRACTOR &&
+                    !isArchiveTuneExtractorEnabled
+            )
+        ) {
+            onPlayerStreamClientChange(PlayerStreamClient.WEB_REMIX)
         }
     }
 
@@ -312,12 +337,9 @@ fun PlayerSettings(navController: NavController) {
                         selectedValue = selectedPlayerStreamClient,
                         values = playerStreamClients,
                         onValueSelected = onPlayerStreamClientChange,
+                        isValueEnabled = isPlayerStreamClientEnabled,
                         valueText = {
                             when (it) {
-                                PlayerStreamClient.ANDROID_VR -> {
-                                    stringResource(R.string.player_stream_client_android_vr)
-                                }
-
                                 PlayerStreamClient.WEB_REMIX -> {
                                     stringResource(R.string.player_stream_client_web_remix)
                                 }
@@ -335,18 +357,20 @@ fun PlayerSettings(navController: NavController) {
                         },
                         valueDescription = {
                             when (it) {
-                                PlayerStreamClient.ANDROID_VR -> {
-                                    stringResource(R.string.player_stream_client_android_vr_desc)
-                                }
-
                                 PlayerStreamClient.WEB_REMIX -> {
                                     stringResource(R.string.player_stream_client_web_remix_desc)
                                 }
 
                                 PlayerStreamClient.ARCHIVETUNE_EXTRACTOR -> {
-                                    stringResource(
-                                        R.string.player_stream_client_archivetune_extractor_desc,
-                                    )
+                                    if (isArchiveTuneExtractorEnabled) {
+                                        stringResource(
+                                            R.string.player_stream_client_archivetune_extractor_desc,
+                                        )
+                                    } else {
+                                        stringResource(
+                                            R.string.player_stream_client_archivetune_extractor_login_required,
+                                        )
+                                    }
                                 }
 
                                 else -> {
@@ -354,6 +378,15 @@ fun PlayerSettings(navController: NavController) {
                                 }
                             }
                         },
+                    )
+                }
+
+                item {
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.mori_cipher_settings_title)) },
+                        description = stringResource(R.string.mori_cipher_settings_description),
+                        icon = { Icon(painterResource(R.drawable.security), null) },
+                        onClick = { navController.navigate("settings/player/chiper") },
                     )
                 }
 

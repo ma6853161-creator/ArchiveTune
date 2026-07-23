@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="explore">تصفح</string>
     <string name="local_history">على الجهاز</string>
@@ -166,8 +166,6 @@
     </plurals>
     <string name="player_stream_client">عميل التشغيل</string>
     <string name="player_stream_client_desc">يتحكم في تطبيق YouTube المستخدم لجلب البث المباشر</string>
-    <string name="player_stream_client_android_vr">أندرويد VR</string>
-    <string name="player_stream_client_android_vr_desc">يبث المحتوى مباشرةً دون الحاجة إلى فك تشفير التوقيع، مما يوفر أقصى سرعة. مناسب لمعظم المستخدمين.</string>
     <string name="player_stream_client_web_remix">ويب ريميكس</string>
     <string name="player_stream_client_web_remix_desc">دعم صيغ إضافية على حساب السرعة. يتسبب فك تشفير توقيع JavaScript في تأخير بدء التشغيل بنحو 5 إلى 10 ثوانٍ.</string>
     <string name="settings_section_player_content">المشغل والمحتوى</string>
@@ -222,4 +220,9 @@
     <string name="music_recognition_permission_desc">السماح بالوصول إلى الميكروفون للتعرف على الموسيقى القريبة.</string>
     <string name="music_recognition_permission_action">سماح</string>
     <string name="music_recognition_error">حدث شيء خاطئ</string>
+    <string name="history_local_summary">تم تشغيلها على هذا الجهاز</string>
+    <string name="history_remote_summary">متزامنة من YouTube Music</string>
+    <string name="history_local_empty_title">لا يوجد سجل محلي حتى الآن</string>
+    <string name="history_local_empty_desc">ستظهر هنا الأغاني التي تشغلها على هذا الجهاز.</string>
+    <string name="history_remote_empty_desc">سيظهر سجل الاستماع الذي تمت مزامنته هنا بعد الاستماع إلى الموسيقى على YouTube Music.</string>
 </resources>

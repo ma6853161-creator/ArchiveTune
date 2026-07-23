@@ -47,6 +47,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -81,11 +83,17 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -121,6 +129,69 @@ import moe.rukamori.archivetune.utils.rememberLowDataModeActive
 import moe.rukamori.archivetune.utils.rememberPreference
 
 private const val PlayerBackgroundMaxBlurRadius = 64f
+private const val ExplicitBadgeInlineId = "explicitBadge"
+
+@Composable
+internal fun PlayerTitleText(
+    title: String,
+    explicit: Boolean,
+    color: Color,
+    style: TextStyle,
+    fontWeight: FontWeight,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    textAlign: TextAlign? = null,
+) {
+    val annotatedTitle =
+        remember(title, explicit) {
+            buildAnnotatedString {
+                append(title)
+                if (explicit) {
+                    append(" ")
+                    appendInlineContent(ExplicitBadgeInlineId, "\uFFFC")
+                }
+            }
+        }
+    val badgePainter = painterResource(R.drawable.explicit)
+    val inlineContent =
+        remember(badgePainter, color, explicit) {
+            if (explicit) {
+                mapOf(
+                    ExplicitBadgeInlineId to
+                        InlineTextContent(
+                            placeholder =
+                                Placeholder(
+                                    width = 0.82.em,
+                                    height = 0.82.em,
+                                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
+                                ),
+                        ) {
+                            Icon(
+                                painter = badgePainter,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        },
+                )
+            } else {
+                emptyMap()
+            }
+        }
+
+    Text(
+        text = annotatedTitle,
+        inlineContent = inlineContent,
+        color = color,
+        style = style,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        textAlign = textAlign,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
 
 @Composable
 fun PlayerTitleSection(
@@ -141,13 +212,12 @@ fun PlayerTitleSection(
         transitionSpec = { fadeIn() togetherWith fadeOut() },
         label = "",
     ) { title ->
-        Text(
-            text = title,
+        PlayerTitleText(
+            title = title,
+            explicit = mediaMetadata.explicit,
+            color = textBackgroundColor,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = textBackgroundColor,
             modifier =
                 Modifier
                     .basicMarquee()
@@ -1870,6 +1940,7 @@ fun V8PlayerControlsContent(
     position: Long,
     duration: Long,
     volume: Float,
+    showVolumeBar: Boolean,
     currentFormat: FormatEntity?,
     playerConnection: PlayerConnection,
     navController: NavController,
@@ -1969,6 +2040,7 @@ fun V8PlayerControlsContent(
 
             V8MetadataActions(
                 title = mediaMetadata.title,
+                explicit = mediaMetadata.explicit,
                 artists = mediaMetadata.artists,
                 liked = currentSongLiked,
                 foreground = foreground,
@@ -2004,14 +2076,16 @@ fun V8PlayerControlsContent(
                 onNextClick = onNextClick,
             )
 
-            Spacer(Modifier.height(transportToVolumeGap))
+            if (showVolumeBar) {
+                Spacer(Modifier.height(transportToVolumeGap))
 
-            V8VolumeControls(
-                volume = volume,
-                foreground = foreground,
-                secondaryForeground = secondaryForeground,
-                onVolumeChange = onVolumeChange,
-            )
+                V8VolumeControls(
+                    volume = volume,
+                    foreground = foreground,
+                    secondaryForeground = secondaryForeground,
+                    onVolumeChange = onVolumeChange,
+                )
+            }
         }
     }
 }
@@ -2030,6 +2104,7 @@ fun V8PlayerContent(
     position: Long,
     duration: Long,
     volume: Float,
+    showVolumeBar: Boolean,
     playerConnection: PlayerConnection,
     navController: NavController,
     state: BottomSheetState,
@@ -2094,6 +2169,7 @@ fun V8PlayerContent(
             position = position,
             duration = duration,
             volume = volume,
+            showVolumeBar = showVolumeBar,
             currentFormat = currentFormat,
             foreground = foreground,
             secondaryForeground = secondaryForeground,
@@ -2134,6 +2210,7 @@ fun V8PlayerContent(
             position = position,
             duration = duration,
             volume = volume,
+            showVolumeBar = showVolumeBar,
             currentFormat = currentFormat,
             foreground = foreground,
             secondaryForeground = secondaryForeground,
@@ -2177,6 +2254,7 @@ private fun V8PortraitContent(
     position: Long,
     duration: Long,
     volume: Float,
+    showVolumeBar: Boolean,
     currentFormat: FormatEntity?,
     foreground: Color,
     secondaryForeground: Color,
@@ -2213,6 +2291,12 @@ private fun V8PortraitContent(
         val progressToTransportGap = if (compactHeight) 8.dp else 18.dp
         val transportToVolumeGap = if (compactHeight) 8.dp else 18.dp
         val bottomGap = if (compactHeight) 8.dp else 16.dp
+        val volumeControlsHeight =
+            if (showVolumeBar) {
+                transportToVolumeGap + 30.dp
+            } else {
+                0.dp
+            }
         val reservedControlsHeight =
             headerTop +
                 56.dp +
@@ -2223,8 +2307,7 @@ private fun V8PortraitContent(
                 62.dp +
                 progressToTransportGap +
                 72.dp +
-                transportToVolumeGap +
-                30.dp +
+                volumeControlsHeight +
                 bottomGap
         val maxArtworkSize =
             (maxWidth - contentPadding * 2)
@@ -2265,6 +2348,7 @@ private fun V8PortraitContent(
 
             V8MetadataActions(
                 title = mediaMetadata.title,
+                explicit = mediaMetadata.explicit,
                 artists = artists,
                 liked = currentSongLiked,
                 foreground = foreground,
@@ -2300,14 +2384,16 @@ private fun V8PortraitContent(
                 onNextClick = onNextClick,
             )
 
-            Spacer(Modifier.height(transportToVolumeGap))
+            if (showVolumeBar) {
+                Spacer(Modifier.height(transportToVolumeGap))
 
-            V8VolumeControls(
-                volume = volume,
-                foreground = foreground,
-                secondaryForeground = secondaryForeground,
-                onVolumeChange = onVolumeChange,
-            )
+                V8VolumeControls(
+                    volume = volume,
+                    foreground = foreground,
+                    secondaryForeground = secondaryForeground,
+                    onVolumeChange = onVolumeChange,
+                )
+            }
 
             Spacer(Modifier.height(bottomGap))
         }
@@ -2332,6 +2418,7 @@ private fun V8LandscapeContent(
     position: Long,
     duration: Long,
     volume: Float,
+    showVolumeBar: Boolean,
     currentFormat: FormatEntity?,
     foreground: Color,
     secondaryForeground: Color,
@@ -2390,6 +2477,7 @@ private fun V8LandscapeContent(
 
                 V8MetadataActions(
                     title = mediaMetadata.title,
+                    explicit = mediaMetadata.explicit,
                     artists = artists,
                     liked = currentSongLiked,
                     foreground = foreground,
@@ -2425,14 +2513,16 @@ private fun V8LandscapeContent(
                     onNextClick = onNextClick,
                 )
 
-                Spacer(Modifier.height(18.dp))
+                if (showVolumeBar) {
+                    Spacer(Modifier.height(18.dp))
 
-                V8VolumeControls(
-                    volume = volume,
-                    foreground = foreground,
-                    secondaryForeground = secondaryForeground,
-                    onVolumeChange = onVolumeChange,
-                )
+                    V8VolumeControls(
+                        volume = volume,
+                        foreground = foreground,
+                        secondaryForeground = secondaryForeground,
+                        onVolumeChange = onVolumeChange,
+                    )
+                }
             }
         }
     }
@@ -2512,6 +2602,7 @@ private fun V8Artwork(
 @Composable
 private fun V8MetadataActions(
     title: String,
+    explicit: Boolean,
     artists: List<MediaMetadata.Artist>,
     liked: Boolean,
     foreground: Color,
@@ -2529,13 +2620,12 @@ private fun V8MetadataActions(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
-                text = title,
+            PlayerTitleText(
+                title = title,
+                explicit = explicit,
+                color = foreground,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = foreground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier =
                     Modifier
                         .basicMarquee()
@@ -2961,6 +3051,7 @@ fun V9PlayerContent(
     if (landscape) {
         V9LandscapeContent(
             title = mediaMetadata.title,
+            explicit = mediaMetadata.explicit,
             artists = mediaMetadata.artists,
             artworkUrl = artworkUrl,
             canvasPrimaryUrl = canvasPrimaryUrl,
@@ -2991,6 +3082,7 @@ fun V9PlayerContent(
     } else {
         V9PortraitContent(
             title = mediaMetadata.title,
+            explicit = mediaMetadata.explicit,
             artists = mediaMetadata.artists,
             artworkUrl = artworkUrl,
             canvasPrimaryUrl = canvasPrimaryUrl,
@@ -3024,6 +3116,7 @@ fun V9PlayerContent(
 @Composable
 private fun V9PortraitContent(
     title: String,
+    explicit: Boolean,
     artists: List<MediaMetadata.Artist>,
     artworkUrl: String?,
     canvasPrimaryUrl: String?,
@@ -3126,6 +3219,7 @@ private fun V9PortraitContent(
 
             V9Metadata(
                 title = title,
+                explicit = explicit,
                 artists = artists,
                 textColor = textBackgroundColor,
                 onTitleClick = onTitleClick,
@@ -3171,6 +3265,7 @@ private fun V9PortraitContent(
 @Composable
 private fun V9LandscapeContent(
     title: String,
+    explicit: Boolean,
     artists: List<MediaMetadata.Artist>,
     artworkUrl: String?,
     canvasPrimaryUrl: String?,
@@ -3241,6 +3336,7 @@ private fun V9LandscapeContent(
 
                 V9Metadata(
                     title = title,
+                    explicit = explicit,
                     artists = artists,
                     textColor = textBackgroundColor,
                     onTitleClick = onTitleClick,
@@ -3410,6 +3506,7 @@ private fun V9Artwork(
 @Composable
 private fun V9Metadata(
     title: String,
+    explicit: Boolean,
     artists: List<MediaMetadata.Artist>,
     textColor: Color,
     onTitleClick: () -> Unit,
@@ -3420,14 +3517,13 @@ private fun V9Metadata(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = title,
+        PlayerTitleText(
+            title = title,
+            explicit = explicit,
+            color = textColor,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = textColor,
             textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier =
                 Modifier
                     .fillMaxWidth()

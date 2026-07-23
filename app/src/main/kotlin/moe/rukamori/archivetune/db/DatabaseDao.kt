@@ -66,6 +66,7 @@ import moe.rukamori.archivetune.innertube.pages.AlbumPage
 import moe.rukamori.archivetune.innertube.pages.ArtistPage
 import moe.rukamori.archivetune.models.MediaMetadata
 import moe.rukamori.archivetune.models.toMediaMetadata
+import moe.rukamori.archivetune.ui.utils.YtimgResizePolicy
 import moe.rukamori.archivetune.ui.utils.resize
 import java.text.Collator
 import java.time.LocalDateTime
@@ -136,7 +137,11 @@ interface DatabaseDao {
         }
 
         SongSortType.PLAY_TIME -> {
-            songsByPlayTimeAsc()
+            if (filterVideo) {
+                songsByPlayTimeAscNoVideo()
+            } else {
+                songsByPlayTimeAsc()
+            }
         }
     }.map { songs ->
         songs.filter { song -> song.artists.none { it.blockedAt != null } }.reversed(descending)
@@ -145,10 +150,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE inLibrary IS NOT NULL AND isMusicVideo = 0
         ORDER BY song.id
         """,
     )
@@ -157,10 +160,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE inLibrary IS NOT NULL AND isMusicVideo = 0
         ORDER BY inLibrary
         """,
     )
@@ -169,10 +170,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE inLibrary IS NOT NULL AND isMusicVideo = 0
         ORDER BY title
         """,
     )
@@ -181,10 +180,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE song.inLibrary IS NOT NULL AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE inLibrary IS NOT NULL AND isMusicVideo = 0
         ORDER BY totalPlayTime
         """,
     )
@@ -252,7 +249,11 @@ interface DatabaseDao {
         }
 
         SongSortType.PLAY_TIME -> {
-            likedSongsByPlayTimeAsc()
+            if (filterVideo) {
+                likedSongsByPlayTimeAscNoVideo()
+            } else {
+                likedSongsByPlayTimeAsc()
+            }
         }
     }.map { songs ->
         songs.filter { song -> song.artists.none { it.blockedAt != null } }.reversed(descending)
@@ -261,10 +262,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE liked AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE liked AND isMusicVideo = 0
         ORDER BY song.rowid
         """,
     )
@@ -273,10 +272,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE liked AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE liked AND isMusicVideo = 0
         ORDER BY likedDate, song.rowid
         """,
     )
@@ -285,10 +282,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE liked AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE liked AND isMusicVideo = 0
         ORDER BY title
         """,
     )
@@ -297,10 +292,8 @@ interface DatabaseDao {
     @Transaction
     @Query(
         """
-        SELECT song.*
-        FROM song
-        LEFT JOIN set_video_id ON set_video_id.videoId = song.id
-        WHERE liked AND set_video_id.setVideoId IS NULL
+        SELECT * FROM song
+        WHERE liked AND isMusicVideo = 0
         ORDER BY totalPlayTime
         """,
     )
@@ -458,6 +451,7 @@ interface DatabaseDao {
             WHERE song_artist_map.songId = song.id
               AND artist.blockedAt IS NOT NULL
         )
+        ORDER BY songCountListened DESC, timeListened DESC, song.id ASC
         LIMIT :limit
         OFFSET :offset
     """,
@@ -498,6 +492,7 @@ interface DatabaseDao {
             WHERE song_artist_map.songId = song.id
               AND artist.blockedAt IS NOT NULL
         )
+        ORDER BY songCountListened DESC, timeListened DESC, song.id ASC
         LIMIT :limit
         OFFSET :offset
     """,
@@ -699,6 +694,20 @@ interface DatabaseDao {
     @Transaction
     @Query("SELECT * FROM song")
     fun allSongs(): Flow<List<Song>>
+
+    @Transaction
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+    @Query("SELECT * FROM album ORDER BY rowId")
+    fun allAlbumsForDownloads(): Flow<List<Album>>
+
+    @Transaction
+    @Query(
+        "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist ORDER BY rowId",
+    )
+    fun allPlaylistsForDownloads(): Flow<List<Playlist>>
+
+    @Query("SELECT * FROM playlist_song_map ORDER BY playlistId, position")
+    fun allPlaylistSongMapsForDownloads(): Flow<List<PlaylistSongMap>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE isLocal = 1 ORDER BY title COLLATE NOCASE, id")
@@ -1382,8 +1391,11 @@ interface DatabaseDao {
     suspend fun searchPlaylistsCount(query: String): Int
 
     @Transaction
-    @Query("SELECT * FROM event ORDER BY rowId DESC")
-    fun events(): Flow<List<EventWithSong>>
+    @Query("SELECT * FROM event ORDER BY rowId DESC LIMIT :limit OFFSET :offset")
+    suspend fun events(
+        limit: Int,
+        offset: Int,
+    ): List<EventWithSong>
 
     @Transaction
     @Query(
@@ -1727,6 +1739,8 @@ interface DatabaseDao {
                 thumbnailUrl = mediaMetadata.thumbnailUrl,
                 albumId = mediaMetadata.album?.id,
                 albumName = mediaMetadata.album?.title,
+                explicit = mediaMetadata.explicit,
+                isMusicVideo = mediaMetadata.isMusicVideo,
             ),
         )
         songArtistMap(song.id).forEach(::delete)
@@ -1773,7 +1787,12 @@ interface DatabaseDao {
         update(
             artist.copy(
                 name = artistPage.artist.title,
-                thumbnailUrl = artistPage.artist.thumbnail?.resize(1080, 1080),
+                thumbnailUrl =
+                    artistPage.artist.thumbnail?.resize(
+                        width = 1080,
+                        height = 1080,
+                        ytimgResizePolicy = YtimgResizePolicy.PreserveOriginal,
+                    ),
                 lastUpdateTime = LocalDateTime.now(),
             ),
         )
@@ -1800,6 +1819,7 @@ interface DatabaseDao {
         if (artists?.size != albumPage.album.artists?.size) {
             artists?.forEach(::delete)
         }
+        clearAlbumSongs(album.id)
         albumPage.songs
             .map(SongItem::toMediaMetadata)
             .onEach(::insert)
@@ -1847,7 +1867,12 @@ interface DatabaseDao {
             playlistEntity.copy(
                 name = playlistItem.title,
                 browseId = playlistItem.id,
-                thumbnailUrl = playlistItem.thumbnail,
+                thumbnailUrl =
+                    if (playlistEntity.hasLocalCustomCover) {
+                        playlistEntity.thumbnailUrl
+                    } else {
+                        playlistItem.thumbnail
+                    },
                 isEditable = playlistItem.isEditable,
                 remoteSongCount = playlistItem.songCountText?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() },
                 playEndpointParams = playlistItem.playEndpoint?.params,
@@ -1883,6 +1908,48 @@ interface DatabaseDao {
         )
     }
 
+    @Query(
+        """
+        UPDATE lyrics
+        SET lyrics = :lyrics, source = :source, updatedAt = :updatedAt
+        WHERE id = :id AND lyrics = :notFoundLyrics
+        """,
+    )
+    fun replaceLyricsIfNotFound(
+        id: String,
+        lyrics: String,
+        source: String,
+        updatedAt: Long,
+        notFoundLyrics: String,
+    ): Int
+
+    @Transaction
+    fun replaceLyricsIfAbsentOrNotFound(
+        id: String,
+        lyrics: String,
+        source: String = LyricsEntity.Source.REMOTE.value,
+        updatedAt: Long = System.currentTimeMillis(),
+    ) {
+        val insertedRowId =
+            insert(
+                LyricsEntity(
+                    id = id,
+                    lyrics = lyrics,
+                    source = source,
+                    updatedAt = updatedAt,
+                ),
+            )
+        if (insertedRowId == -1L) {
+            replaceLyricsIfNotFound(
+                id = id,
+                lyrics = lyrics,
+                source = source,
+                updatedAt = updatedAt,
+                notFoundLyrics = LyricsEntity.LYRICS_NOT_FOUND,
+            )
+        }
+    }
+
     @Transaction
     fun replaceLyrics(
         id: String,
@@ -1902,6 +1969,16 @@ interface DatabaseDao {
 
     @Upsert
     fun upsert(format: FormatEntity)
+
+    @Query("UPDATE format SET bitrate = :bitrate, sampleRate = :sampleRate WHERE id = :id")
+    suspend fun updateLocalAudioMetadata(
+        id: String,
+        bitrate: Int,
+        sampleRate: Int?,
+    )
+
+    @Query("SELECT * FROM format WHERE id IN (:ids)")
+    suspend fun getFormatsByIds(ids: List<String>): List<FormatEntity>
 
     @Upsert
     fun upsert(artist: ArtistEntity)
@@ -1923,6 +2000,9 @@ interface DatabaseDao {
 
     @Query("DELETE FROM song_album_map WHERE songId = :songId")
     fun deleteSongAlbumMaps(songId: String)
+
+    @Query("DELETE FROM song_album_map WHERE albumId = :albumId")
+    fun clearAlbumSongs(albumId: String)
 
     @Query("DELETE FROM album_artist_map WHERE albumId IN (:albumIds)")
     fun deleteAlbumArtistMapsByAlbumIds(albumIds: List<String>)

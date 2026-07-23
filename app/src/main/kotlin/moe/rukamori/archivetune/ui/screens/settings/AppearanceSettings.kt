@@ -87,6 +87,8 @@ import moe.rukamori.archivetune.constants.GridItemSize
 import moe.rukamori.archivetune.constants.GridItemsSizeKey
 import moe.rukamori.archivetune.constants.HidePlayerThumbnailKey
 import moe.rukamori.archivetune.constants.LibraryFilter
+import moe.rukamori.archivetune.constants.LyricsBackgroundStyle
+import moe.rukamori.archivetune.constants.LyricsBackgroundStyleKey
 import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyle
 import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyleKey
 import moe.rukamori.archivetune.constants.PlayerBackgroundStyle
@@ -100,6 +102,7 @@ import moe.rukamori.archivetune.constants.QuickPicksDisplayMode
 import moe.rukamori.archivetune.constants.QuickPicksDisplayModeKey
 import moe.rukamori.archivetune.constants.RandomThemeOnStartupKey
 import moe.rukamori.archivetune.constants.ShowHomeCategoryChipsKey
+import moe.rukamori.archivetune.constants.ShowPlayerVolumeBarKey
 import moe.rukamori.archivetune.constants.ShowTagsInLibraryKey
 import moe.rukamori.archivetune.constants.SliderStyle
 import moe.rukamori.archivetune.constants.SliderStyleKey
@@ -148,6 +151,11 @@ fun AppearanceSettings(navController: NavController) {
             PlayerDesignStyleKey,
             defaultValue = PlayerDesignStyle.V4,
         )
+    val (showPlayerVolumeBar, onShowPlayerVolumeBarChange) =
+        rememberPreference(
+            ShowPlayerVolumeBarKey,
+            defaultValue = true,
+        )
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) =
         rememberPreference(
             HidePlayerThumbnailKey,
@@ -172,6 +180,11 @@ fun AppearanceSettings(navController: NavController) {
         rememberEnumPreference(
             PlayerBackgroundStyleKey,
             defaultValue = PlayerBackgroundStyle.DEFAULT,
+        )
+    val (configuredLyricsBackground, onLyricsBackgroundChange) =
+        rememberEnumPreference(
+            LyricsBackgroundStyleKey,
+            defaultValue = LyricsBackgroundStyle.DEFAULT,
         )
     val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
         rememberEnumPreference(
@@ -300,6 +313,15 @@ fun AppearanceSettings(navController: NavController) {
         PlayerBackgroundStyle.entries.filter {
             it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         }
+    val availableLyricsBackgroundStyles =
+        remember {
+            listOf(
+                LyricsBackgroundStyle.DEFAULT,
+                LyricsBackgroundStyle.FOLLOW_THEME,
+                LyricsBackgroundStyle.COLORING,
+            )
+        }
+    val lyricsBackground = configuredLyricsBackground.resolveFor(playerBackground)
     val isPlayerStyleCustomizationEnabled =
         when (playerDesignStyle) {
             PlayerDesignStyle.V7,
@@ -309,6 +331,9 @@ fun AppearanceSettings(navController: NavController) {
 
             else -> true
         }
+    val isVolumeBarSupported =
+        playerDesignStyle == PlayerDesignStyle.V7 ||
+            playerDesignStyle == PlayerDesignStyle.V8
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
         remember(darkMode, isSystemInDarkTheme) {
@@ -630,6 +655,22 @@ fun AppearanceSettings(navController: NavController) {
                 }
 
                 item {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_player_volume_bar)) },
+                        description =
+                            if (isVolumeBarSupported) {
+                                null
+                            } else {
+                                stringResource(R.string.player_volume_bar_v7_v8_only)
+                            },
+                        icon = { Icon(painterResource(R.drawable.volume_up), null) },
+                        checked = showPlayerVolumeBar,
+                        onCheckedChange = onShowPlayerVolumeBarChange,
+                        isEnabled = isVolumeBarSupported,
+                    )
+                }
+
+                item {
                     EnumListPreference(
                         title = { Text(stringResource(R.string.player_background_style)) },
                         description =
@@ -640,7 +681,18 @@ fun AppearanceSettings(navController: NavController) {
                             },
                         icon = { Icon(painterResource(R.drawable.gradient), null) },
                         selectedValue = playerBackground,
-                        onValueSelected = onPlayerBackgroundChange,
+                        onValueSelected = { selectedBackground ->
+                            onPlayerBackgroundChange(selectedBackground)
+                            when {
+                                selectedBackground == PlayerBackgroundStyle.CUSTOM -> {
+                                    onLyricsBackgroundChange(LyricsBackgroundStyle.CUSTOM)
+                                }
+
+                                configuredLyricsBackground == LyricsBackgroundStyle.CUSTOM -> {
+                                    onLyricsBackgroundChange(LyricsBackgroundStyle.DEFAULT)
+                                }
+                            }
+                        },
                         isEnabled = isPlayerStyleCustomizationEnabled,
                         valueText = {
                             when (it) {
@@ -652,6 +704,25 @@ fun AppearanceSettings(navController: NavController) {
                                 PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                                 PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                 PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                            }
+                        },
+                    )
+                }
+
+                item {
+                    ListPreference(
+                        title = { Text(stringResource(R.string.lyrics_background_style)) },
+                        icon = { Icon(painterResource(R.drawable.lyrics), null) },
+                        selectedValue = lyricsBackground,
+                        values = availableLyricsBackgroundStyles,
+                        onValueSelected = onLyricsBackgroundChange,
+                        isEnabled = playerBackground != PlayerBackgroundStyle.CUSTOM,
+                        valueText = {
+                            when (it) {
+                                LyricsBackgroundStyle.DEFAULT -> stringResource(R.string.lyrics_background_default)
+                                LyricsBackgroundStyle.FOLLOW_THEME -> stringResource(R.string.follow_theme)
+                                LyricsBackgroundStyle.COLORING -> stringResource(R.string.coloring)
+                                LyricsBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                             }
                         },
                     )
@@ -873,7 +944,6 @@ fun AppearanceSettings(navController: NavController) {
                             when (it) {
                                 NavigationTab.HOME -> stringResource(R.string.home)
                                 NavigationTab.SEARCH -> stringResource(R.string.search)
-                                NavigationTab.MOODANDGENRES -> stringResource(R.string.mood_and_genres)
                                 NavigationTab.LIBRARY -> stringResource(R.string.filter_library)
                             }
                         },
@@ -973,7 +1043,8 @@ private fun rememberSupportedHighestFps(): Float {
 
     return remember(view) {
         val display = view.display
-        display?.supportedModes
+        display
+            ?.supportedModes
             ?.maxOfOrNull { mode -> mode.refreshRate }
             ?: display?.refreshRate
             ?: DEFAULT_STANDARD_REFRESH_RATE_FPS
@@ -1075,7 +1146,6 @@ enum class DarkMode {
 enum class NavigationTab {
     HOME,
     SEARCH,
-    MOODANDGENRES,
     LIBRARY,
 }
 

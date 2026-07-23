@@ -33,6 +33,7 @@ val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
 val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
+val ShowPlayerVolumeBarKey = booleanPreferencesKey("showPlayerVolumeBar")
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val ArchiveTuneCanvasKey = booleanPreferencesKey("archiveTuneCanvas")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
@@ -151,6 +152,7 @@ val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableYouLyPlusLyricsKey = booleanPreferencesKey("enableYouLyPlusLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
+val EnableMegalobizLyricsKey = booleanPreferencesKey("enableMegalobizLyrics")
 val EnablePaxsenixLyricsKey = booleanPreferencesKey("enablePaxsenixLyrics")
 val EnablePaxsenixAppleMusicLyricsKey = booleanPreferencesKey("enablePaxsenixAppleMusicLyrics")
 val EnablePaxsenixNeteaseLyricsKey = booleanPreferencesKey("enablePaxsenixNeteaseLyrics")
@@ -160,6 +162,9 @@ val EnablePaxsenixYouTubeLyricsKey = booleanPreferencesKey("enablePaxsenixYouTub
 val EnableUnisonLyricsKey = booleanPreferencesKey("enableUnisonLyrics")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
+val AiContentFilterEnabledKey = booleanPreferencesKey("aiContentFilterEnabled")
+val AiContentFilterIncludeModerateKey = booleanPreferencesKey("aiContentFilterIncludeModerate")
+val AiContentFilterLastUpdatedKey = longPreferencesKey("aiContentFilterLastUpdated")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
 val ProxyHostKey = stringPreferencesKey("proxyHost")
 val ProxyPortKey = intPreferencesKey("proxyPort")
@@ -202,8 +207,6 @@ val AiCustomModelKey = stringPreferencesKey("ai_custom_model")
 enum class AiProvider {
     CHATGPT,
     GEMINI,
-    CLAUDE,
-    OPENROUTER,
     CUSTOM,
     NONE,
 }
@@ -281,7 +284,9 @@ val ShowHomeCategoryChipsKey = booleanPreferencesKey("showHomeCategoryChips")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
 val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")
+val EqualizerControlModeKey = stringPreferencesKey("equalizerControlMode")
 val EqualizerBandLevelsMbKey = stringPreferencesKey("equalizerBandLevelsMb")
+val EqualizerAutoHeadroomEnabledKey = booleanPreferencesKey("equalizerAutoHeadroomEnabled")
 val EqualizerOutputGainEnabledKey = booleanPreferencesKey("equalizerOutputGainEnabled")
 val EqualizerOutputGainMbKey = intPreferencesKey("equalizerOutputGainMb")
 val EqualizerBassBoostEnabledKey = booleanPreferencesKey("equalizerBassBoostEnabled")
@@ -549,6 +554,7 @@ enum class PreferredLyricsProvider {
     YOULY_PLUS,
     LRCLIB,
     KUGOU,
+    MEGALOBIZ,
     SIMPMUSIC,
     UNISON,
     PAXSENIX_APPLE_MUSIC,
@@ -564,6 +570,7 @@ val DefaultLyricsProviderOrder =
         PreferredLyricsProvider.YOULY_PLUS,
         PreferredLyricsProvider.LRCLIB,
         PreferredLyricsProvider.KUGOU,
+        PreferredLyricsProvider.MEGALOBIZ,
         PreferredLyricsProvider.SIMPMUSIC,
         PreferredLyricsProvider.UNISON,
         PreferredLyricsProvider.PAXSENIX_APPLE_MUSIC,
@@ -628,6 +635,20 @@ enum class PlayerBackgroundStyle {
     GLOW_ANIMATED,
 }
 
+enum class LyricsBackgroundStyle {
+    DEFAULT,
+    FOLLOW_THEME,
+    COLORING,
+    CUSTOM;
+
+    fun resolveFor(playerBackgroundStyle: PlayerBackgroundStyle): LyricsBackgroundStyle =
+        when {
+            playerBackgroundStyle == PlayerBackgroundStyle.CUSTOM -> CUSTOM
+            this == CUSTOM -> DEFAULT
+            else -> this
+        }
+}
+
 enum class MiniPlayerBackgroundStyle {
     THEME,
     GRADIENT,
@@ -654,6 +675,7 @@ enum class LyricsAnimationStyle {
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
 val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
 val LyricsLineBlurKey = booleanPreferencesKey("lyricsLineBlur")
+val ShowLyricsPlayerControlsKey = booleanPreferencesKey("showLyricsPlayerControls")
 
 val TopSize = stringPreferencesKey("topSize")
 
@@ -666,6 +688,7 @@ val HistoryDuration = intPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val LyricsBackgroundStyleKey = stringPreferencesKey("lyricsBackgroundStyle")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
@@ -830,6 +853,7 @@ val RemindAfterKey = intPreferencesKey("remind_after")
 val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
+val MoriCipherManualRefreshHistoryKey = stringSetPreferencesKey("moriCipherManualRefreshHistory")
 val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
 
 val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
@@ -843,16 +867,27 @@ val GitHubReleasesJsonKey = stringPreferencesKey("github_releases_json")
 val GitHubReleasesLastCheckedAtKey = longPreferencesKey("github_releases_last_checked_at")
 val GitHubReleasesFingerprintKey = stringPreferencesKey("github_releases_fingerprint")
 
-val DailyNightlyReleasesEtagKey = stringPreferencesKey("daily_nightly_releases_etag")
-val DailyNightlyReleasesJsonKey = stringPreferencesKey("daily_nightly_releases_json")
-val DailyNightlyReleasesLastCheckedAtKey = longPreferencesKey("daily_nightly_releases_last_checked_at")
-val DailyNightlyReleasesFingerprintKey = stringPreferencesKey("daily_nightly_releases_fingerprint")
+val CanaryReleasesEtagKey = stringPreferencesKey("daily_nightly_releases_etag")
+val CanaryReleasesJsonKey = stringPreferencesKey("daily_nightly_releases_json")
+val CanaryReleasesLastCheckedAtKey = longPreferencesKey("daily_nightly_releases_last_checked_at")
+val CanaryReleasesFingerprintKey = stringPreferencesKey("daily_nightly_releases_fingerprint")
 
 val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
 val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel {
     STABLE,
-    NIGHTLY,
-    DAILY_NIGHTLY,
+    CANARY,
+    ;
+
+    companion object {
+        fun fromStoredName(
+            value: String?,
+            defaultValue: UpdateChannel,
+        ): UpdateChannel =
+            when (value) {
+                "NIGHTLY", "DAILY_NIGHTLY" -> CANARY
+                else -> entries.firstOrNull { it.name == value } ?: defaultValue
+            }
+    }
 }

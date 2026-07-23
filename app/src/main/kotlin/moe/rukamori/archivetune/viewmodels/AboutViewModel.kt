@@ -62,7 +62,6 @@ data class AboutUiModel(
     val respecters: TeamMemberCollection,
     val contributorsState: AboutContributorsUiState,
     val contributorsReadMoreUrl: String,
-    val isOverflowMenuExpanded: Boolean,
     val activeDialog: AboutDialog,
     val translationContributorsState: AboutTranslationContributorsUiState,
     val dependencyLicensesState: AboutDependencyLicensesUiState,
@@ -262,7 +261,6 @@ class AboutViewModel
         private var translationContributorsState: AboutTranslationContributorsUiState =
             AboutTranslationContributorsUiState.Loading
         private var dependencyLicensesState: AboutDependencyLicensesUiState = AboutDependencyLicensesUiState.Loading
-        private var isOverflowMenuExpanded = false
         private var activeDialog = AboutDialog.NONE
 
         init {
@@ -273,25 +271,13 @@ class AboutViewModel
             loadContributors(force = true)
         }
 
-        fun showOverflowMenu() {
-            isOverflowMenuExpanded = true
-            updateState()
-        }
-
-        fun dismissOverflowMenu() {
-            isOverflowMenuExpanded = false
-            updateState()
-        }
-
         fun openTranslationContributors() {
-            isOverflowMenuExpanded = false
             activeDialog = AboutDialog.TRANSLATION_CONTRIBUTORS
             updateState()
             loadTranslationContributors()
         }
 
         fun openDependencyLicenses() {
-            isOverflowMenuExpanded = false
             activeDialog = AboutDialog.DEPENDENCY_LICENSES
             updateState()
             loadDependencyLicenses()
@@ -429,7 +415,7 @@ class AboutViewModel
                             id = "github",
                             iconResId = R.drawable.github,
                             labelResId = R.string.about_content_desc_github,
-                            url = "https://github.com/ArchiveTuneApp/ArchiveTune",
+                            url = "https://github.com/rukamori/ArchiveTune",
                         ),
                         AboutLinkUiModel(
                             id = "website",
@@ -529,21 +515,6 @@ class AboutViewModel
                                 ),
                         ),
                         TeamMember(
-                            avatarUrl = "https://avatars.githubusercontent.com/u/80249864?v=4",
-                            name = "sang765",
-                            positionResId = R.string.about_position_developers,
-                            profileUrl = "https://github.com/sang765",
-                            links =
-                                AboutLinkCollection.of(
-                                    AboutLinkUiModel(
-                                        id = "github",
-                                        iconResId = R.drawable.github,
-                                        labelResId = R.string.about_content_desc_github,
-                                        url = "https://github.com/sang765",
-                                    ),
-                                ),
-                        ),
-                        TeamMember(
                             avatarUrl = "https://avatars.githubusercontent.com/u/203143605?v=4",
                             name = "Yuki/Reze",
                             positionResId = R.string.about_position_yuki,
@@ -594,7 +565,6 @@ class AboutViewModel
                     ),
                 contributorsState = contributorsState,
                 contributorsReadMoreUrl = ContributorsReadMoreUrl,
-                isOverflowMenuExpanded = isOverflowMenuExpanded,
                 activeDialog = activeDialog,
                 translationContributorsState = translationContributorsState,
                 dependencyLicensesState = dependencyLicensesState,
@@ -647,6 +617,6 @@ class AboutViewModel
         private companion object {
             const val MaxDisplayedContributors = 20
             const val DebugBuildBadge = "DEBUG"
-            const val ContributorsReadMoreUrl = "https://github.com/ArchiveTuneApp/ArchiveTune/graphs/contributors"
+            const val ContributorsReadMoreUrl = "https://github.com/rukamori/ArchiveTune/graphs/contributors"
         }
     }
