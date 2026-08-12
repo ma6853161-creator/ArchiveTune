@@ -48,20 +48,16 @@ import moe.rukamori.archivetune.constants.ExternalDownloaderEnabledKey
 import moe.rukamori.archivetune.constants.ExternalDownloaderPackageKey
 import moe.rukamori.archivetune.constants.HISTORY_DURATION_DEFAULT
 import moe.rukamori.archivetune.constants.HistoryDuration
-import moe.rukamori.archivetune.constants.InnerTubeCookieKey
 import moe.rukamori.archivetune.constants.LowDataModeKey
 import moe.rukamori.archivetune.constants.PauseOnDeviceMuteKey
 import moe.rukamori.archivetune.constants.PermanentShuffleKey
 import moe.rukamori.archivetune.constants.PersistentQueueKey
 import moe.rukamori.archivetune.constants.PlayerStreamClient
 import moe.rukamori.archivetune.constants.PlayerStreamClientKey
-import moe.rukamori.archivetune.constants.PoTokenGvsKey
-import moe.rukamori.archivetune.constants.PoTokenPlayerKey
 import moe.rukamori.archivetune.constants.SeekExtraSeconds
 import moe.rukamori.archivetune.constants.SkipSilenceKey
 import moe.rukamori.archivetune.constants.StopMusicOnTaskClearKey
 import moe.rukamori.archivetune.constants.WakelockKey
-import moe.rukamori.archivetune.innertube.utils.hasYouTubeLoginCookie
 import moe.rukamori.archivetune.ui.component.ArtistSeparatorsDialog
 import moe.rukamori.archivetune.ui.component.CrossfadeSliderPreference
 import moe.rukamori.archivetune.ui.component.EnumListPreference
@@ -204,15 +200,7 @@ fun PlayerSettings(navController: NavController) {
             WakelockKey,
             defaultValue = false,
         )
-    val (innerTubeCookie, _) = rememberPreference(InnerTubeCookieKey, defaultValue = "")
-    val (poTokenGvs, _) = rememberPreference(PoTokenGvsKey, defaultValue = "")
-    val (poTokenPlayer, _) = rememberPreference(PoTokenPlayerKey, defaultValue = "")
-    val isArchiveTuneExtractorEnabled =
-        remember(innerTubeCookie, poTokenGvs, poTokenPlayer) {
-            hasYouTubeLoginCookie(innerTubeCookie) &&
-                poTokenGvs.isNotBlank() &&
-                poTokenPlayer.isNotBlank()
-        }
+    val isArchiveTuneExtractorEnabled = false
     val playerStreamClients =
         remember {
             listOf(

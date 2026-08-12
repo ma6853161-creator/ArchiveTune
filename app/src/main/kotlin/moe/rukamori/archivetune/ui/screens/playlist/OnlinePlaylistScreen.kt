@@ -536,6 +536,7 @@ fun OnlinePlaylistScreen(
                                                         sendRemoveDownloads(
                                                             context = context,
                                                             songIds = songs.map { it.id },
+                                                            downloads = downloads,
                                                         )
                                                     }
 
@@ -663,6 +664,7 @@ fun OnlinePlaylistScreen(
                     ) { song ->
                         YouTubeListItem(
                             item = song.item.second,
+                            showSourceIcon = true,
                             viewCountText =
                                 viewCounts[song.item.second.id]?.let { count ->
                                     formatCompactCount(count.toLong())

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="explore">Erkunden</string>
     <string name="local_history">Lokal</string>
@@ -38,7 +38,7 @@
     <string name="dislike_all">Mag alles nicht</string>
     <string name="sort_by_last_updated">Datum aktualisiert</string>
     <string name="link_copied">Link in die Zwischenablage kopiert</string>
-    <string name="now_playing">Jetzt gespielt</string>
+    <string name="now_playing">Läuft gerade</string>
     <string name="close">Schließen</string>
     <string name="minimum_volume">Minimale Lautstärke</string>
     <string name="maximum_volume">Maximale Lautstärke</string>
@@ -50,8 +50,8 @@
         <item quantity="other">%d Elemente</item>
     </plurals>
     <plurals name="n_time">
-        <item quantity="one">%d Mal</item>
-        <item quantity="other">%d Mal</item>
+        <item quantity="one">%d mal</item>
+        <item quantity="other">%d mal</item>
     </plurals>
     <string name="seek_forward_dynamic">+%1$d Sekunden vorwärts</string>
     <string name="seek_backward_dynamic">-%1$d Sekunden zurück</string>
@@ -155,7 +155,7 @@
     <string name="player_design_v5">Klein</string>
     <string name="lyrics_text_size">Songtextgröße</string>
     <string name="resume_autoscroll">Autoscrollen fortsetzen</string>
-    <string name="canvas_cache">Canvas Cache</string>
+    <string name="canvas_cache">Canvas-Cache</string>
     <string name="clear_canvas_cache">Leere Canvas Cache</string>
     <string name="clear_canvas_cache_dialog">Sind sie sich sicher, dass sie alle zwischengespeicherten Canvas leeren wollen?</string>
     <string name="playlist_private_title">Diese playlist war privat</string>
@@ -355,7 +355,7 @@
     <string name="settings_account_subtitle">Anmeldung und Kontosynchronisierung verwalten</string>
     <string name="settings_stats_title">Hörstatistiken</string>
     <string name="settings_stats_subtitle">Deine beliebtesten Songs, Interpreten und dein Wiedergabeverlauf</string>
-    <string name="top_songs">Top Songs</string>
+    <string name="top_songs">Top-Songs</string>
     <string name="year_in_music">Ein Jahr in Musik</string>
     <string name="total_listening_time">Gesamthörzeit</string>
     <string name="top_artists">Top Künstler</string>
@@ -569,4 +569,26 @@
     <string name="stats_top_songs">Top-Songs</string>
     <string name="stats_peak_hour">Meistaktiv: %s</string>
     <string name="year_in_music_ranked_albums">Alben, zu denen du zurückgekehrt bist</string>
+    <string name="release_type_album">Album</string>
+    <string name="release_type_single">Single</string>
+    <string name="release_metadata">%1$s • %2$d</string>
+    <string name="year_in_music_current_card">Karte teilen</string>
+    <string name="stats_time_range">Zeitspanne</string>
+    <string name="storage_cache_clear_failed">Cache konnte nicht geleert werden. Überprüfe den SD-Kartenzugriff.</string>
+    <string name="aod_customize_show_time_labels">Zeitbeschriftungen anzeigen</string>
+    <string name="show_lyrics_player_controls">Wiedergabesteuerung anzeigen</string>
+    <string name="spotify_no_tracks">Keine Spotify-Titel gefunden.</string>
+    <string name="spotify_reload_playlist_desc">Spotify-Playlists von deinem Konto aktualisieren.</string>
+    <string name="latest_release">Letzte Veröffentlichung</string>
+    <string name="lyrics_share_style_vivid_glow">Lebhaftes Glühen</string>
+    <string name="storage_migration_warning">Warnung: Während dieses Prozesses, lasse die App offen und schalte dein Gerät nicht aus, da sonst die Gefahr von Datenverlust besteht.</string>
+    <string name="music_recognition_notification_recording_failed_title">Geräteaudio konnte nicht aufgenommen werden</string>
+    <string name="music_recognition_notification_signature_failed_text">Das aufgenommene Audio enthielt nicht genug Musik für eine Identifikation.</string>
+    <string name="music_recognition_notification_recognition_failed_text">Der Erkennungsdienst konnte das Audio nicht identifizieren. Versuche es in Kürze erneut.</string>
+    <string name="music_recognition_history_empty_body">Passende Songs werden hier erscheinen, wenn die Erkennung Erfolg hatte.</string>
+    <string name="aod_customize_thumbnail_shape_desc">Formen als AOD-Covermaske verwenden.</string>
+    <string name="aod_customize_shape_rotation">Rotation der Form</string>
+    <string name="mori_cipher_status_degraded">Konfiguration aus dem Cache verwenden</string>
+    <string name="stats_empty_message">Songs, die du wiedergibst, werden hier mit Hörtrends und Rankings auftauchen.</string>
+    <string name="stats_listening_patterns">Hörmuster</string>
 </resources>

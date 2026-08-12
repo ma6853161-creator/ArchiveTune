@@ -76,6 +76,10 @@ import java.util.Locale
 @Dao
 interface DatabaseDao {
     @Transaction
+    @Query("SELECT song.* FROM song INNER JOIN format ON format.id = song.id WHERE song.isLocal = 0")
+    fun downloadedSongsList(): List<Song>
+
+    @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowId")
     fun songsByRowIdAsc(): Flow<List<Song>>
 
@@ -1344,6 +1348,10 @@ interface DatabaseDao {
         query: String,
         previewSize: Int = Int.MAX_VALUE,
     ): Flow<List<Song>>
+
+    @Transaction
+    @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL OR isLocal ORDER BY rowId")
+    fun importSongCandidates(): Flow<List<Song>>
 
     @Query("SELECT COUNT(1) FROM song WHERE title LIKE '%' || :query || '%' AND inLibrary IS NOT NULL")
     suspend fun searchSongsCount(query: String): Int

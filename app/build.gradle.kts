@@ -1,23 +1,5 @@
-import org.gradle.api.DefaultTask
-import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.TaskAction
-import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
-
-@DisableCachingByDefault(because = "Validation-only task has no outputs.")
-abstract class ValidateStartIoReleaseConfigurationTask : DefaultTask() {
-    @get:Input
-    abstract val appId: Property<String>
-
-    @TaskAction
-    fun validate() {
-        require(appId.get().isNotBlank()) {
-            "START_IO_APP_ID is required for GMS release builds."
-        }
-    }
-}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -75,28 +57,6 @@ val hasReleaseSigningConfig =
         releaseStorePassword != null &&
         releaseKeyAlias != null &&
         releaseKeyPassword != null
-val startIoAppId =
-    (
-        localProperties.getProperty("START_IO_APP_ID")
-            ?: System.getenv("START_IO_APP_ID")
-            ?: ""
-        ).trim()
-tasks.register<ValidateStartIoReleaseConfigurationTask>("validateStartIoReleaseConfiguration") {
-    group = "verification"
-    description = "Validates the production Start.io identifier for GMS release artifacts."
-    appId.set(startIoAppId)
-}
-
-tasks.configureEach {
-    val isGmsReleaseArtifactTask =
-        (name.startsWith("assemble") || name.startsWith("bundle")) &&
-            name.contains("Gms") &&
-            name.endsWith("Release")
-    if (isGmsReleaseArtifactTask) {
-        dependsOn("validateStartIoReleaseConfiguration")
-    }
-}
-
 android {
     namespace = "moe.rukamori.archivetune"
     compileSdk = 37
@@ -105,8 +65,8 @@ android {
     applicationId = "moe.rukamori.archivetune"
         minSdk = 26
         targetSdk = 37
-        versionCode = 139
-        versionName = "14.0.0"
+        versionCode = 140
+        versionName = "14.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -142,6 +102,7 @@ android {
 
         buildConfigField("String", "DATA_SERVER_URL", dataServerUrl.asBuildConfigString())
         buildConfigField("String", "API_BEARER_TOKEN", apiBearerToken.asBuildConfigString())
+        buildConfigField("boolean", "GATEKEEPER_ENABLED", "false")
 
         val nightlyBuildHash =
             (
@@ -165,11 +126,6 @@ android {
             buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
             buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
             manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-            buildConfigField(
-                "String",
-                "START_IO_APP_ID",
-                "\"$startIoAppId\"",
-            )
         }
         create("foss") {
             dimension = "distribution"
@@ -248,6 +204,7 @@ android {
             )
         }
         debug {
+            buildConfigField("boolean", "GATEKEEPER_ENABLED", "false")
             applicationIdSuffix = ".debug"
             isDebuggable = true
         }

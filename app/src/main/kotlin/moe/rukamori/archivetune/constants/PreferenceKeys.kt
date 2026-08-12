@@ -60,6 +60,26 @@ val AodHorizontalPaddingKey = floatPreferencesKey("aodHorizontalPadding")
 val AodVerticalSpacingKey = floatPreferencesKey("aodVerticalSpacing")
 val AodTitleMaxLinesKey = intPreferencesKey("aodTitleMaxLines")
 val AodAmbientIntensityKey = floatPreferencesKey("aodAmbientIntensity")
+val AodTouchLockEnabledKey = booleanPreferencesKey("aodTouchLockEnabled")
+val AodUnlockMethodKey = stringPreferencesKey("aodUnlockMethod")
+val AodShowClockKey = booleanPreferencesKey("aodShowClock")
+val AodClockStyleKey = stringPreferencesKey("aodClockStyle")
+val AodShowBatteryKey = booleanPreferencesKey("aodShowBattery")
+val AodPixelShiftEnabledKey = booleanPreferencesKey("aodPixelShiftEnabled")
+val AodShowLyricTickerKey = booleanPreferencesKey("aodShowLyricTicker")
+val AodAutoDimmingKey = booleanPreferencesKey("aodAutoDimming")
+val AodAutoDimTimeoutKey = intPreferencesKey("aodAutoDimTimeout")
+val AodGesturesEnabledKey = booleanPreferencesKey("aodGesturesEnabled")
+
+val AodShakeToUnlockKey = booleanPreferencesKey("aodShakeToUnlock")
+val AodAutoLockEnabledKey = booleanPreferencesKey("aodAutoLockEnabled")
+val AodAutoLockTimeoutKey = intPreferencesKey("aodAutoLockTimeout")
+val AodMarqueeTitlesKey = booleanPreferencesKey("aodMarqueeTitles")
+val AodMinimalLockedStateKey = booleanPreferencesKey("aodMinimalLockedState")
+val AodBrightnessKey = floatPreferencesKey("aodBrightness")
+val AodProximityBlackoutKey = booleanPreferencesKey("aodProximityBlackout")
+val AodTrueAmbientModeKey = booleanPreferencesKey("aodTrueAmbientMode")
+val AodAutoStartScreenOffKey = booleanPreferencesKey("aodAutoStartScreenOff")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val BlurRadiusKey = floatPreferencesKey("blurRadius")
@@ -96,6 +116,9 @@ enum class AodBackgroundStyle {
     SOFT_RADIAL,
     TONAL_EDGE,
     AMBIENT_GLOW,
+    ADAPTIVE_ART,
+    FROSTED_WALLPAPER,
+    ADAPTIVE_FROSTED,
 }
 
 enum class AodAccentStyle {
@@ -121,6 +144,18 @@ enum class AodControlStyle {
     MINIMAL,
 }
 
+enum class AodUnlockMethod {
+    SLIDE,
+    HOLD,
+}
+
+enum class AodClockStyle {
+    BOLD_DIGITAL,
+    MINIMAL,
+    ELEGANT_THIN,
+    PIXEL_STACKED,
+}
+
 enum class SliderStyle {
     Standard,
     Wavy,
@@ -144,12 +179,14 @@ enum class PlaylistSuggestionSource {
 }
 
 val AppLanguageKey = stringPreferencesKey("appLanguage")
+val UseSystemLanguageKey = booleanPreferencesKey("useSystemLanguage")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val PlaylistSuggestionSourceKey = stringPreferencesKey("playlistSuggestionSource")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
+val EnableBetterLyricsPortatoKey = booleanPreferencesKey("enableBetterLyricsPortato")
 val EnableYouLyPlusLyricsKey = booleanPreferencesKey("enableYouLyPlusLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val EnableMegalobizLyricsKey = booleanPreferencesKey("enableMegalobizLyrics")
@@ -178,6 +215,7 @@ val IpRotationEnabledKey = booleanPreferencesKey("ipRotationEnabled")
 val YtmSyncKey = booleanPreferencesKey("ytmSync")
 val ForceSyncOnAccountSwitchKey = booleanPreferencesKey("forceSyncOnAccountSwitch")
 val SelectedYtmPlaylistsKey = stringPreferencesKey("ytm_selected_playlists")
+val ImportSourcePriorityKey = booleanPreferencesKey("import_local_first")
 val LocalSongsMinDurationSecondsKey = intPreferencesKey("local_songs_min_duration_seconds")
 val LocalSongsIncludedFoldersKey = stringSetPreferencesKey("local_songs_included_folders")
 val LocalSongsExcludedFoldersKey = stringSetPreferencesKey("local_songs_excluded_folders")
@@ -280,6 +318,8 @@ val ArtistSeparatorsKey = stringPreferencesKey("artistSeparators")
 val ExternalDownloaderEnabledKey = booleanPreferencesKey("externalDownloaderEnabled")
 val ExternalDownloaderPackageKey = stringPreferencesKey("externalDownloaderPackage")
 val PlaylistTagsFilterKey = stringPreferencesKey("playlistTagsFilter")
+val LibraryChipOrderKey = stringPreferencesKey("libraryChipOrder")
+val PlaylistTagOrderKey = stringPreferencesKey("playlistTagOrder")
 val ShowHomeCategoryChipsKey = booleanPreferencesKey("showHomeCategoryChips")
 val ShowTagsInLibraryKey = booleanPreferencesKey("showTagsInLibrary")
 
@@ -551,6 +591,7 @@ enum class QuickPicks {
 
 enum class PreferredLyricsProvider {
     BETTER_LYRICS,
+    BETTER_LYRICS_PORTATO,
     YOULY_PLUS,
     LRCLIB,
     KUGOU,
@@ -567,6 +608,7 @@ enum class PreferredLyricsProvider {
 val DefaultLyricsProviderOrder =
     listOf(
         PreferredLyricsProvider.BETTER_LYRICS,
+        PreferredLyricsProvider.BETTER_LYRICS_PORTATO,
         PreferredLyricsProvider.YOULY_PLUS,
         PreferredLyricsProvider.LRCLIB,
         PreferredLyricsProvider.KUGOU,
@@ -874,6 +916,8 @@ val CanaryReleasesFingerprintKey = stringPreferencesKey("daily_nightly_releases_
 
 val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
 val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
+
+val RedownloadOnRestoreKey = booleanPreferencesKey("redownloadOnRestore")
 
 enum class UpdateChannel {
     STABLE,
