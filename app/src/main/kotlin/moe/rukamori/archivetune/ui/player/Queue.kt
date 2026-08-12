@@ -10,7 +10,7 @@
 package moe.rukamori.archivetune.ui.player
 
 import android.annotation.SuppressLint
-import android.view.ViewTreeObserver
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -59,8 +59,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -76,18 +74,17 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.navigation.NavController
@@ -125,7 +122,6 @@ import moe.rukamori.archivetune.ui.component.TextFieldDialog
 import moe.rukamori.archivetune.ui.menu.AddToPlaylistDialog
 import moe.rukamori.archivetune.ui.menu.PlayerMenu
 import moe.rukamori.archivetune.ui.utils.ShowMediaInfo
-import moe.rukamori.archivetune.utils.oem.SystemMediaControlResolver
 import moe.rukamori.archivetune.utils.rememberEnumPreference
 import moe.rukamori.archivetune.utils.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
@@ -645,18 +641,18 @@ fun Queue(
                 }
 
                 PlayerDesignStyle.V7, PlayerDesignStyle.V8 -> {
-                    val audioDevice by playerConnection.service.activeAudioDevice.collectAsStateWithLifecycle()
-
-                    val view = LocalView.current
-                    DisposableEffect(view) {
-                        val listener =
-                            ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
-                                if (hasFocus) playerConnection.service.refreshActiveDevice()
-                            }
-                        view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
-                        onDispose { view.viewTreeObserver.removeOnWindowFocusChangeListener(listener) }
-                    }
-
+                    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
+                    val activeDevice =
+                        remember(audioManager) {
+                            audioManager
+                                .getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                                .firstOrNull {
+                                    it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                                        it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                                        it.type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET
+                                }?.productName
+                                ?.toString() ?: "Speaker"
+                        }
                     QueueCollapsedContentV7(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
@@ -673,9 +669,11 @@ fun Queue(
                             }
                         },
                         onDeviceClick = {
-                            SystemMediaControlResolver.openMediaOutputSwitcher(context)
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
                         },
-                        device = audioDevice,
+                        deviceName = activeDevice,
                     )
                 }
             }
@@ -711,7 +709,7 @@ fun Queue(
 
         val headerItems = 1
         val lazyListState = rememberLazyListState()
-        var dragInfo by remember { mutableStateOf<QueueDragInfo?>(null) }
+        var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
         val currentPlayingUid =
             remember(currentWindowIndex, queueWindows) {
@@ -727,41 +725,28 @@ fun Queue(
                 lazyListState = lazyListState,
                 scrollThresholdPadding =
                     WindowInsets.systemBars
-                        .only(WindowInsetsSides.Bottom)
                         .add(
                             WindowInsets(
+                                top = ListItemHeight,
                                 bottom = ListItemHeight,
                             ),
                         ).asPaddingValues(),
-            ) onMove@{ from, to ->
-                val fromQueueIndex = from.index - headerItems
-                val toQueueIndex = to.index - headerItems
-                if (
-                    fromQueueIndex !in mutableQueueWindows.indices ||
-                    toQueueIndex !in mutableQueueWindows.indices
-                ) {
-                    return@onMove
-                }
-
-                val draggedItemUid = dragInfo?.draggedItemUid ?: mutableQueueWindows[fromQueueIndex].uid
-                val actualFromQueueIndex = mutableQueueWindows.indexOfFirst { it.uid == draggedItemUid }
-                if (actualFromQueueIndex == -1) return@onMove
-
-                mutableQueueWindows.move(actualFromQueueIndex, toQueueIndex)
+            ) { from, to ->
+                val currentDragInfo = dragInfo
                 dragInfo =
-                    QueueDragInfo(
-                        draggedItemUid = draggedItemUid,
-                        destination =
-                            if (toQueueIndex == 0) {
-                                QueueDragDestination.Start
-                            } else {
-                                QueueDragDestination.After(
-                                    itemUid = mutableQueueWindows[toQueueIndex - 1].uid,
-                                )
-                            },
-                    )
+                    if (currentDragInfo == null) {
+                        from.index to to.index
+                    } else {
+                        currentDragInfo.first to to.index
+                    }
+
+                val safeFrom = (from.index - headerItems).coerceIn(0, mutableQueueWindows.lastIndex)
+                val safeTo = (to.index - headerItems).coerceIn(0, mutableQueueWindows.lastIndex)
+
+                mutableQueueWindows.move(safeFrom, safeTo)
 
                 if (selection && currentWindowIndex in mutableQueueWindows.indices) {
+                    val draggedItemUid = mutableQueueWindows[if (to.index > from.index) safeTo else safeFrom].uid
                     val currentItem = queueWindows.getOrNull(currentWindowIndex)
 
                     if (currentItem?.uid == draggedItemUid) {
@@ -780,56 +765,40 @@ fun Queue(
                 }
             }
 
-        LaunchedEffect(queueWindows, reorderableState.isAnyItemDragging) {
-            if (reorderableState.isAnyItemDragging) return@LaunchedEffect
+        LaunchedEffect(reorderableState.isAnyItemDragging) {
+            if (!reorderableState.isAnyItemDragging) {
+                dragInfo?.let { (from, to) ->
+                    val safeFrom = (from - headerItems).coerceIn(0, queueWindows.lastIndex)
+                    val safeTo = (to - headerItems).coerceIn(0, queueWindows.lastIndex)
 
-            val completedDrag = dragInfo
-            if (completedDrag != null) {
-                val sourceIndex = queueWindows.indexOfFirst { it.uid == completedDrag.draggedItemUid }
-                val destinationIndex = completedDrag.destination.resolveIndex(queueWindows, sourceIndex)
-                dragInfo = null
-
-                if (
-                    sourceIndex != -1 &&
-                    destinationIndex != null &&
-                    sourceIndex != destinationIndex
-                ) {
                     if (!playerConnection.player.shuffleModeEnabled) {
-                        playerConnection.player.moveMediaItem(sourceIndex, destinationIndex)
+                        playerConnection.player.moveMediaItem(safeFrom, safeTo)
                     } else {
                         playerConnection.localPlayer.setShuffleOrder(
                             DefaultShuffleOrder(
                                 queueWindows
                                     .map { it.firstPeriodIndex }
                                     .toMutableList()
-                                    .move(sourceIndex, destinationIndex)
+                                    .move(safeFrom, safeTo)
                                     .toIntArray(),
                                 System.currentTimeMillis(),
                             ),
                         )
                     }
-                    return@LaunchedEffect
+                    dragInfo = null
                 }
             }
+        }
 
+        LaunchedEffect(queueWindows) {
             Snapshot.withMutableSnapshot {
                 mutableQueueWindows.clear()
                 mutableQueueWindows.addAll(queueWindows)
             }
         }
 
-        LaunchedEffect(
-            state.isCollapsed,
-            scrollToCurrentRequested,
-            currentPlayingUid,
-            reorderableState.isAnyItemDragging,
-        ) {
-            if (
-                !state.isCollapsed &&
-                scrollToCurrentRequested &&
-                currentPlayingUid != null &&
-                !reorderableState.isAnyItemDragging
-            ) {
+        LaunchedEffect(state.isCollapsed, scrollToCurrentRequested, currentPlayingUid) {
+            if (!state.isCollapsed && scrollToCurrentRequested && currentPlayingUid != null) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
                     lazyListState.scrollToItem(indexInMutableList + headerItems)
@@ -1022,7 +991,11 @@ fun Queue(
                             val content: @Composable () -> Unit = {
                                 Row(
                                     horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier =
+                                        Modifier.graphicsLayer {
+                                            // Enable hardware acceleration for smoother dragging
+                                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                                        },
                                 ) {
                                     val shouldLoadImages by remember {
                                         derivedStateOf {
@@ -1069,7 +1042,13 @@ fun Queue(
                                             if (!effectiveLocked) {
                                                 IconButton(
                                                     onClick = { },
-                                                    modifier = Modifier.draggableHandle(),
+                                                    modifier =
+                                                        Modifier
+                                                            .draggableHandle()
+                                                            .graphicsLayer {
+                                                                // Improve touch response
+                                                                alpha = 0.99f
+                                                            },
                                                 ) {
                                                     Icon(
                                                         painter = painterResource(R.drawable.drag_handle),
@@ -1235,38 +1214,6 @@ private val Timeline.Window.queueItemKey: Long
     get() =
         (uid.hashCode().toLong() shl Int.SIZE_BITS) xor
             (mediaItem.mediaId.hashCode().toLong() and UInt.MAX_VALUE.toLong())
-
-@Immutable
-private data class QueueDragInfo(
-    public val draggedItemUid: Any,
-    public val destination: QueueDragDestination,
-)
-
-@Immutable
-private sealed interface QueueDragDestination {
-    public data object Start : QueueDragDestination
-
-    public data class After(
-        public val itemUid: Any,
-    ) : QueueDragDestination
-}
-
-private fun QueueDragDestination.resolveIndex(
-    queueWindows: List<Timeline.Window>,
-    sourceIndex: Int,
-): Int? =
-    when (this) {
-        QueueDragDestination.Start -> if (queueWindows.isEmpty()) null else 0
-        is QueueDragDestination.After -> {
-            val anchorIndex = queueWindows.indexOfFirst { it.uid == itemUid }
-            when {
-                sourceIndex !in queueWindows.indices -> null
-                anchorIndex == -1 -> null
-                sourceIndex < anchorIndex -> anchorIndex
-                else -> (anchorIndex + 1).coerceAtMost(queueWindows.lastIndex)
-            }
-        }
-    }
 
 @Composable
 private fun QueueSelectionFloatingToolbar(
